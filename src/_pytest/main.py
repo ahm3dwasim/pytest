@@ -1168,6 +1168,21 @@ def resolve_collection_argument(
     fspath = invocation_path / strpath
     fspath = absolutepath(fspath)
     if not safe_exists(fspath):
+        if as_pypath and module_name is not None:
+            # The module was importable (``search_pypath`` found a spec and
+            # returned a path), but that path does not exist on the file
+            # system. This typically happens when the module is bundled inside
+            # a frozen/zipped application (e.g. PyInstaller), where the source
+            # files live in an embedded archive rather than on disk. pytest
+            # collects tests from files on the file system, so it cannot
+            # collect from such a location (#14771).
+            raise UsageError(
+                f"module {arg} was found, but its file-system path does not "
+                f"exist: {fspath}\n"
+                "This usually means the module is bundled inside a frozen or "
+                "zipped application (e.g. PyInstaller); pytest can only collect "
+                "tests from files available on the file system."
+            )
         msg = (
             "module or package not found: {arg} (missing __init__.py?)"
             if as_pypath
