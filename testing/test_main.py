@@ -275,6 +275,41 @@ class TestResolveCollectionArgument:
         ):
             resolve_collection_argument(invocation_path, "foobar", 0, as_pypath=True)
 
+    def test_pypath_importable_but_not_on_filesystem(
+        self, invocation_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A module that is importable (e.g. frozen/zipped application) but
+        whose file-system path does not exist gives a dedicated error instead
+        of the misleading ``missing __init__.py?`` message (#14771)."""
+        from importlib.machinery import ModuleSpec
+        import importlib.util
+
+        # Simulate a PyInstaller-like frozen importer: the module resolves to a
+        # path inside a non-existent bundle directory.
+        frozen_dir = invocation_path / "_nonexistent_MEIPASS" / "frozenpkg"
+        spec = ModuleSpec("frozenpkg", loader=None, is_package=True)
+        spec.submodule_search_locations = [str(frozen_dir)]
+
+        def fake_find_spec(name: str) -> ModuleSpec | None:
+            return spec if name == "frozenpkg" else None
+
+        monkeypatch.setattr(importlib.util, "find_spec", fake_find_spec)
+        assert not frozen_dir.exists()
+
+        with pytest.raises(
+            UsageError,
+            match=re.escape(
+                "module frozenpkg was found, but its file-system path does not exist"
+            ),
+        ):
+            resolve_collection_argument(
+                invocation_path,
+                "frozenpkg",
+                0,
+                as_pypath=True,
+                consider_namespace_packages=True,
+            )
+
     def test_absolute_paths_are_resolved_correctly(self, invocation_path: Path) -> None:
         """Absolute paths resolve back to absolute paths."""
         full_path = str(invocation_path / "src")
