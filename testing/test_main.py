@@ -279,8 +279,8 @@ class TestResolveCollectionArgument:
         self, invocation_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A module that is importable (e.g. frozen/zipped application) but
-        whose file-system path does not exist gives a dedicated error instead
-        of the misleading ``missing __init__.py?`` message (#14771)."""
+        whose file-system path does not exist keeps the "not found" error
+        and appends an explanation of why (#14771)."""
         from importlib.machinery import ModuleSpec
         import importlib.util
 
@@ -299,7 +299,9 @@ class TestResolveCollectionArgument:
         with pytest.raises(
             UsageError,
             match=re.escape(
-                "module frozenpkg was found, but its file-system path does not exist"
+                "module or package not found: frozenpkg (missing __init__.py?)\n"
+                "The module was found by the import system, but its file-system "
+                "path does not exist"
             ),
         ):
             resolve_collection_argument(

@@ -1177,8 +1177,9 @@ def resolve_collection_argument(
             # collects tests from files on the file system, so it cannot
             # collect from such a location (#14771).
             raise UsageError(
-                f"module {arg} was found, but its file-system path does not "
-                f"exist: {fspath}\n"
+                f"module or package not found: {arg} (missing __init__.py?)\n"
+                f"The module was found by the import system, but its "
+                f"file-system path does not exist: {fspath}\n"
                 "This usually means the module is bundled inside a frozen or "
                 "zipped application (e.g. PyInstaller); pytest can only collect "
                 "tests from files available on the file system."
